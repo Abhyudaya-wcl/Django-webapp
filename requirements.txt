@@ -1,3 +1,6 @@
 django
 whitenoise
 python-dotenv
+openai
+azure-identity
+django-htmx

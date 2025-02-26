@@ -1,1 +1,126 @@
-<h1>Hello World</h1>
+{% extends "base.html" %} {% block content %} {% load static %}
+<head>
+  <link
+    rel="stylesheet"
+    href="{% static 'css/home.css' %}" />
+</head>
+<body class="h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 ff-roboto font-sans flex flex-col transition-colors transition-all">
+  <div class="chat-container w-4xl mx-auto p-6 mb-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg flex flex-col flex-grow transition-colors transition-all">
+    <div
+      class="chat-box border border-gray-300 dark:border-gray-700 p-4 h-96 overflow-y-auto flex flex-col flex-grow rounded-md transition-all"
+      id="chat-box"></div>
+    <div class="input-box flex mt-4 transition-all">
+      <button
+        class="p-2 bg-green-600 dark:bg-green-700 text-white rounded-md mr-2 hover:bg-green-700 dark:hover:bg-green-800 transition-all"
+        id="clear-btn">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 -960 960 960"
+          width="24px"
+          fill="#e8eaed">
+          <path
+            d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T680-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z" />
+        </svg>
+      </button>
+      <input
+        type="text"
+        id="user-message"
+        class="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-md transition-all"
+        placeholder="Type a message..." />
+      <button
+        id="send-btn"
+        class="p-2 bg-blue-500 dark:bg-blue-600 text-white rounded-md ml-2 hover:bg-blue-700 dark:hover:bg-blue-700 transition-all">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          height="24px"
+          viewBox="0 -960 960 960"
+          width="24px"
+          fill="#e8eaed">
+          <path d="M120-160v-640l760 320-760 320Zm80-120 474-200-474-200v140l240 60-240 60v140Zm0 0v-400 400Z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div id="document-display"></div>
+  <script>
+    const inputField = document.getElementById("user-message");
+    const sendButton = document.getElementById("send-btn");
+    const clearButton = document.getElementById("clear-btn");
+    const documentDisplay = document.getElementById("document-display");
+    sendButton.addEventListener("click", function () {
+      let message = inputField.value.trim();
+      if (message === "") return;
+
+      let chatBox = document.getElementById("chat-box");
+
+      // Append user message
+      let userMsg = document.createElement("div");
+      userMsg.className = "message user";
+      userMsg.innerText = message;
+      chatBox.appendChild(userMsg);
+
+      // Show loading indicator
+      let loadingMsg = document.createElement("div");
+      loadingMsg.className = "message bot loading";
+      loadingMsg.innerText = "Thinking...";
+      chatBox.appendChild(loadingMsg);
+
+      chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+
+      // Send message to server
+      fetch("{% url 'response' %}", {
+        method: "POST",
+        headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+        body: JSON.stringify({message: message}),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          chatBox.removeChild(loadingMsg); // Remove loading
+
+          let botMsg = document.createElement("div");
+          botMsg.className = "message bot";
+          botMsg.innerText = data.response;
+          botMsg.innerHTML = marked.parse(data.response);
+          chatBox.appendChild(botMsg);
+
+          chatBox.scrollTop = chatBox.scrollHeight; // Auto-scroll
+        })
+        .catch((error) => console.error("Error:", error));
+
+      inputField.value = ""; // Clear input field
+    });
+    inputField.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" && inputField.value.trim() !== "") {
+        sendButton.click();
+      }
+    });
+    clearButton.addEventListener("click", function () {
+      document.getElementById("chat-box").innerHTML = "";
+    });
+    window.showDocument = function (docNum, docText) {
+      documentDisplay.innerHTML = docText;
+      documentDisplay.style.display = "block";
+    };
+  </script>
+  <script>
+    const toggle = document.getElementById("darkModeToggle");
+    const html = document.documentElement;
+
+    toggle.addEventListener("click", () => {
+      if (html.classList.contains("dark")) {
+        html.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      } else {
+        html.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      }
+    });
+
+    // Check local storage for saved theme
+    if (localStorage.getItem("theme") === "dark") {
+      html.classList.add("dark");
+    }
+  </script>
+</body>
+{% endblock content%}
